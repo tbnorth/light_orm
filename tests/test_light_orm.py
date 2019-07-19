@@ -70,6 +70,15 @@ def test_get_pks(dbpath):
     assert cur.execute("select count(*) from est").fetchone()[0] == 2
 
 
+def test_get_rec(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    res = light_orm.get_rec(cur, 'est', {'date': 2010, 'site': 1})
+    assert res == {'est': 1, 'date': 2010, 'flow': None, 'site': 1}
+    assert cur.execute("select count(*) from est").fetchone()[0] == 2
+
+
 def test_get_recs(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
@@ -81,3 +90,17 @@ def test_get_recs(dbpath):
         {'est': 2, 'date': 2010, 'flow': None, 'site': 2},
     ]
     assert cur.execute("select count(*) from est").fetchone()[0] == 2
+
+
+def test_save_rec(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010})
+    res = light_orm.get_rec(cur, 'est', {'date': 2010})
+    assert res.site is None
+    res.site = 123
+    light_orm.save_rec(cur, res)
+    con.commit()
+    con, cur = light_orm.get_con_cur(dbpath, read_only=True)
+    res = light_orm.get_rec(cur, 'est', {'date': 2010})
+    assert res.site == 123
+

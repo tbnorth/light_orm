@@ -131,7 +131,7 @@ def get_recs(cur, table, ident):
 
 
 
-def save_rec(opt, rec):
+def save_rec(cur, rec):
     """save_rec - save a modified record
 
     Args:
@@ -144,4 +144,4 @@ def save_rec(opt, rec):
     q = 'update {table} set {values} where {table} = {pk}'.format(
         table=table, pk=pk, values=','.join('%s=?' % i[0] for i in vals)
     )
-    do_query(opt, q, [i[1] for i in vals])
+    do_query(cur, q, [i[1] for i in vals])
