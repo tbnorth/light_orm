@@ -1,5 +1,6 @@
 import light_orm
 import pytest
+from importlib import reload
 
 DB_SQL = [
     """create table est (
@@ -26,7 +27,6 @@ def check_db(cur, insert=True):
         light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'flow': 11.2})
     res = light_orm.get_rec(cur, 'est', {'date': 2010})
     assert res == {'est': 1, 'date': 2010, 'flow': 11.2, 'site': None}
-
 
 def test_open(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
@@ -103,4 +103,13 @@ def test_save_rec(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, read_only=True)
     res = light_orm.get_rec(cur, 'est', {'date': 2010})
     assert res.site == 123
+
+def test_pyver():
+    import sys
+    ver = sys.version_info
+    sys.version_info = (2, 2) + ver[2:]
+    with pytest.raises(SystemExit):
+        reload(light_orm)
+    sys.version_info = ver
+
 
