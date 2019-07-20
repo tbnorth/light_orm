@@ -7,7 +7,11 @@ Terry N. Brown terrynbrown@gmail.com Fri 07/19/2019
 import os
 import sqlite3
 import sys
-from addict import Dict
+
+try:
+    from addict import Dict
+except ImportError:
+    Dict = dict
 
 if sys.version_info < (3, 6):
     # need dict insertion order
@@ -127,8 +131,6 @@ def get_or_make_rec(cur, table, ident, defaults=None):
 
 def get_recs(cur, table, ident):
     return get_rec(cur, table, ident, multi=True)
-
-
 
 
 def save_rec(cur, rec):
