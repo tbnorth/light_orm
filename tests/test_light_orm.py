@@ -67,8 +67,18 @@ def test_get_pks(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
     assert sorted(light_orm.get_pks(cur, 'est', {'date': 2010})) == [1, 2]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 2
+    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+
+
+def test_get_all_pks(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
+    assert sorted(light_orm.get_pks(cur, 'est')) == [1, 2, 3]
+    assert cur.execute("select count(*) from est").fetchone()[0] == 3
 
 
 def test_get_rec(dbpath):
@@ -84,13 +94,29 @@ def test_get_recs(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
     res = light_orm.get_recs(cur, 'est', {'date': 2010})
     res.sort(key=lambda x: x['est'])
     assert res == [
         {'est': 1, 'date': 2010, 'flow': None, 'site': 1},
         {'est': 2, 'date': 2010, 'flow': None, 'site': 2},
     ]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 2
+    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+
+
+def test_get_all_recs(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
+    res = light_orm.get_recs(cur, 'est')
+    res.sort(key=lambda x: x['est'])
+    assert res == [
+        {'est': 1, 'date': 2010, 'flow': None, 'site': 1},
+        {'est': 2, 'date': 2010, 'flow': None, 'site': 2},
+        {'est': 3, 'date': 2020, 'flow': None, 'site': 2},
+    ]
+    assert cur.execute("select count(*) from est").fetchone()[0] == 3
 
 
 def test_save_rec(dbpath):

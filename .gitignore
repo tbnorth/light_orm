@@ -1,2 +1,7 @@
 __pycache__ 
 .coverage 
+demo.py
+*,cover
+pizza.db
+venv
+

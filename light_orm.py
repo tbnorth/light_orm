@@ -10,7 +10,7 @@ import sys
 
 try:
     from addict import Dict
-except ImportError:
+except ImportError:  # pragma: no cover
     Dict = dict
 
 if sys.version_info < (3, 6):
@@ -72,9 +72,13 @@ def do_one(cur, q, vals=None):
 
 def get_pk(cur, table, ident, return_obj=False, multi=False):
 
-    q = "select {table} from {table} where {vals}".format(
-        table=table, vals=' and '.join('%s=?' % k for k in ident)
-    )
+    if ident:
+        where = " where {vals}".format(
+            vals=' and '.join('%s=?' % k for k in ident)
+        )
+    else:
+        where = ''
+    q = "select {table} from {table}{where}".format(table=table, where=where)
     if return_obj:
         q = q.replace(table, '*', 1)  # replace first <table>
     res = do_query(cur, q, list(ident.values()))
@@ -119,7 +123,9 @@ def get_or_make_pk(cur, table, ident, defaults=None, return_obj=False):
         return get_pk(cur, table, defaults, return_obj=return_obj), True
 
 
-def get_pks(cur, table, ident, return_obj=False):
+def get_pks(cur, table, ident=None, return_obj=False):
+    if ident is None:
+        ident = {}
     return get_pk(cur, table, ident, return_obj=return_obj, multi=True)
 
 
@@ -129,7 +135,9 @@ def get_or_make_rec(cur, table, ident, defaults=None):
     )
 
 
-def get_recs(cur, table, ident):
+def get_recs(cur, table, ident=None):
+    if ident is None:
+        ident = {}
     return get_rec(cur, table, ident, multi=True)
 
 
