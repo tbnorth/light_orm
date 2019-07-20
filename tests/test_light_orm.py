@@ -28,6 +28,7 @@ def check_db(cur, insert=True):
     res = light_orm.get_rec(cur, 'est', {'date': 2010})
     assert res == {'est': 1, 'date': 2010, 'flow': 11.2, 'site': None}
 
+
 def test_open(dbpath):
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
     check_db(cur)
@@ -104,12 +105,42 @@ def test_save_rec(dbpath):
     res = light_orm.get_rec(cur, 'est', {'date': 2010})
     assert res.site == 123
 
+
+def test_do_one(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    res = light_orm.do_one(cur, "select count(*) as count from est")
+    assert res == {'count': 2}
+
+
+def test_get_or_make_rec(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    res = light_orm.get_or_make_rec(cur, 'est', {'date': 2010, 'site': 1})
+    assert res == ({'est': 1, 'date': 2010, 'site': 1, 'flow': None}, True)
+    res = light_orm.get_or_make_rec(cur, 'est', {'date': 2010, 'site': 2})
+    assert res == ({'est': 2, 'date': 2010, 'site': 2, 'flow': None}, True)
+    res = light_orm.get_or_make_rec(cur, 'est', {'date': 2010, 'site': 1})
+    assert res == ({'est': 1, 'date': 2010, 'site': 1, 'flow': None}, False)
+
+
+def test_multi_fail(dbpath):
+    con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 1})
+    light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
+    with pytest.raises(Exception):
+        res = light_orm.get_pk(cur, 'est', {'date': 2010})
+        return res  # for pylint
+    with pytest.raises(Exception):
+        res = light_orm.do_one(cur, "select * from est")
+        return res  # for pylint
+
+
 def test_pyver():
     import sys
+
     ver = sys.version_info
     sys.version_info = (2, 2) + ver[2:]
     with pytest.raises(SystemExit):
         reload(light_orm)
     sys.version_info = ver
-
-
