@@ -56,6 +56,11 @@ def do_query(cur, q, vals=None):
     if not select:
         return
     res = cur.fetchall()
+    if cur.description is None:
+        print('\n', q, '\n')
+        raise Exception(
+            "Error: table defined without first field `integer primary key`?"
+        )
     flds = [i[0] for i in cur.description]
     # this can consume a lot of RAM, but avoids blocking DB calls
     # i.e. making other queries while still consuming this result
