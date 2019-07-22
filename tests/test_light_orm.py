@@ -6,7 +6,7 @@ DB_SQL = [
     """create table est (
     est integer primary key,
     site int,
-    date date,
+    date int,
     flow real
     )""",
     """create table site (
@@ -16,9 +16,27 @@ DB_SQL = [
     """create index site_site_idx on site(site)""",
 ]
 
+try:
+    import psycopg2
+    import os
+    USE_POSTGRES = bool(os.environ.get("LO_USE_POSTGRES"))
+    if USE_POSTGRES:
+        DB_SQL = [i.replace("integer primary key", "serial") for i in DB_SQL]
+except ImportError:
+    USE_POSTGRES = False
+
 
 @pytest.fixture
 def dbpath(tmp_path_factory):
+    if USE_POSTGRES:
+        dbpath = "dbname=lo_test"
+        con = psycopg2.connect(dbpath)
+        cur = con.cursor()
+        cur.execute("drop table if exists est;")
+        cur.execute("drop table if exists site;")
+        con.commit()
+        return dbpath
+
     return str(tmp_path_factory.mktemp('tmp').joinpath('some.db'))
 
 
@@ -35,11 +53,15 @@ def test_open(dbpath):
 
 
 def test_read_only(dbpath):
+    if USE_POSTGRES:
+        pytest.skip("Read only only supported for sqlite")
     with pytest.raises(Exception):
         con, cur = light_orm.get_con_cur(dbpath, DB_SQL, read_only=True)
 
 
 def test_read_only_write(dbpath):
+    if USE_POSTGRES:
+        pytest.skip("Read only only supported for sqlite")
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)  # make the DB exist
     with pytest.raises(Exception):
         con, cur = light_orm.get_con_cur(dbpath, DB_SQL, read_only=True)
@@ -48,6 +70,8 @@ def test_read_only_write(dbpath):
 
 
 def test_read_only_existing(dbpath):
+    if USE_POSTGRES:
+        pytest.skip("Read only only supported for sqlite")
     con, cur = light_orm.get_con_cur(dbpath, DB_SQL)
     check_db(cur)
     con.commit()
@@ -60,7 +84,8 @@ def test_get_or_make_pk(dbpath):
     assert light_orm.get_or_make_pk(cur, 'est', {'date': 2010}) == (1, True)
     # should not insert a second copy
     assert light_orm.get_or_make_pk(cur, 'est', {'date': 2010}) == (1, False)
-    assert cur.execute("select count(*) from est").fetchone()[0] == 1
+    cur.execute("select count(*) from est")
+    assert cur.fetchone()[0] == 1
 
 
 def test_get_pks(dbpath):
@@ -69,7 +94,8 @@ def test_get_pks(dbpath):
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
     light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
     assert sorted(light_orm.get_pks(cur, 'est', {'date': 2010})) == [1, 2]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+    cur.execute("select count(*) from est") == 3
+    assert cur.fetchone()[0] == 3
 
 
 def test_get_all_pks(dbpath):
@@ -78,7 +104,8 @@ def test_get_all_pks(dbpath):
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
     light_orm.get_or_make_pk(cur, 'est', {'date': 2020, 'site': 2})
     assert sorted(light_orm.get_pks(cur, 'est')) == [1, 2, 3]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+    cur.execute("select count(*) from est")
+    assert cur.fetchone()[0] == 3
 
 
 def test_get_rec(dbpath):
@@ -87,7 +114,8 @@ def test_get_rec(dbpath):
     light_orm.get_or_make_pk(cur, 'est', {'date': 2010, 'site': 2})
     res = light_orm.get_rec(cur, 'est', {'date': 2010, 'site': 1})
     assert res == {'est': 1, 'date': 2010, 'flow': None, 'site': 1}
-    assert cur.execute("select count(*) from est").fetchone()[0] == 2
+    cur.execute("select count(*) from est")
+    assert cur.fetchone()[0] == 2
 
 
 def test_get_recs(dbpath):
@@ -101,7 +129,8 @@ def test_get_recs(dbpath):
         {'est': 1, 'date': 2010, 'flow': None, 'site': 1},
         {'est': 2, 'date': 2010, 'flow': None, 'site': 2},
     ]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+    cur.execute("select count(*) from est")
+    assert cur.fetchone()[0] == 3
 
 
 def test_get_all_recs(dbpath):
@@ -116,7 +145,8 @@ def test_get_all_recs(dbpath):
         {'est': 2, 'date': 2010, 'flow': None, 'site': 2},
         {'est': 3, 'date': 2020, 'flow': None, 'site': 2},
     ]
-    assert cur.execute("select count(*) from est").fetchone()[0] == 3
+    cur.execute("select count(*) from est")
+    assert cur.fetchone()[0] == 3
 
 
 def test_save_rec(dbpath):

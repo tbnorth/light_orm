@@ -13,6 +13,15 @@ try:
 except ImportError:  # pragma: no cover
     Dict = dict
 
+try:
+    import psycopg2
+    psycopg2_ProgrammingError = psycopg2.ProgrammingError
+except ImportError:
+    class psycopg2_ProgrammingError(Exception):
+        pass
+
+paramstyle = '?'
+
 if sys.version_info < (3, 6):
     # need dict insertion order
     print("requires Python >= 3.6")
@@ -20,7 +29,35 @@ if sys.version_info < (3, 6):
     exit(10)
 
 
-def get_con_cur(filepath, schema=None, read_only=False):
+def get_con_cur(dbpath, schema=None, read_only=False):
+    if 'dbname=' not in dbpath:
+        return get_con_cur_sqlite(dbpath, schema=schema, read_only=read_only)
+
+    return get_con_cur_psql(dbpath, schema=schema, read_only=read_only)
+
+
+def get_con_cur_psql(dbpath, schema=None, read_only=False):
+    con = psycopg2.connect(dbpath)
+    cur = con.cursor()
+    if schema:
+        for sql in schema:
+            if sql.lower().strip().startswith("create table"):
+                table = sql.split()[2]
+                break
+        cur.execute("SELECT EXISTS (SELECT 1 FROM pg_tables WHERE "
+                    "tablename = '%s');" % table)
+        if not cur.fetchone()[0]:
+            for sql in schema or []:
+                cur.execute("abort;")
+                cur.execute("begin;")
+                cur.execute(sql)
+                con.commit()
+
+    global paramstyle
+    paramstyle = "%s"
+    return con, cur
+
+def get_con_cur_sqlite(filepath, schema=None, read_only=False):
     """Open DB, creating if necessary.
 
     Args:
@@ -43,11 +80,14 @@ def get_con_cur(filepath, schema=None, read_only=False):
         for sql in schema or []:
             cur.execute(sql)
         con.commit()
+
     return con, cur
 
 
 def do_query(cur, q, vals=None):
     select = q.lower().strip().startswith('select')
+    if paramstyle != '?':
+        q = q.replace('?', paramstyle)  # FIXME: crude
     try:
         cur.execute(q, vals or [])
     except Exception:
@@ -55,7 +95,10 @@ def do_query(cur, q, vals=None):
         print(vals)
     if not select:
         return
-    res = cur.fetchall()
+    try:
+        res = cur.fetchall()
+    except psycopg2_ProgrammingError:
+        res = []
     if cur.description is None:
         print('\n', q, '\n')
         raise Exception(
