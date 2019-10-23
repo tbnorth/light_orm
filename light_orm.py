@@ -94,18 +94,19 @@ def do_query(cur, q, vals=None):
     except Exception:
         print(q)
         print(vals)
+        raise
     if not select:
         return
     try:
         res = cur.fetchall()
     except psycopg2_ProgrammingError:
         res = []
-    if cur.description is None:
+    if res and cur.description is None:
         print('\n', q, '\n')
         raise Exception(
             "Error: table defined without first field `integer primary key`?"
         )
-    flds = [i[0] for i in cur.description]
+    flds = [i[0] for i in cur.description or []]
     # this can consume a lot of RAM, but avoids blocking DB calls
     # i.e. making other queries while still consuming this result
     return [Dict(zip(flds, i)) for i in res]
