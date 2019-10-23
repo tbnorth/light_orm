@@ -47,11 +47,12 @@ def get_con_cur_psql(dbpath, schema=None, read_only=False):
         cur.execute("SELECT EXISTS (SELECT 1 FROM pg_tables WHERE "
                     "tablename = '%s');" % table)
         if not cur.fetchone()[0]:
-            for sql in schema or []:
-                cur.execute("abort;")
-                cur.execute("begin;")
-                cur.execute(sql)
-                con.commit()
+            for sql in ['begin'] + (schema or []) + ['commit']:
+                try:
+                    cur.execute(sql)
+                except Exception:
+                    print(sql)
+                    raise
 
     global paramstyle
     paramstyle = "%s"
