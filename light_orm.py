@@ -90,7 +90,10 @@ def do_query(cur, q, vals=None):
     if paramstyle != '?':
         q = q.replace('?', paramstyle)  # FIXME: crude
     try:
-        cur.execute(q, vals or [])
+        if vals and isinstance(vals[0], (tuple, list)):
+            cur.executemany(q, vals or [])
+        else:
+            cur.execute(q, vals or [])
     except Exception:
         print(q)
         print(vals)
