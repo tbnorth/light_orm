@@ -15,10 +15,13 @@ except ImportError:  # pragma: no cover
 
 try:
     import psycopg2
+
     psycopg2_ProgrammingError = psycopg2.ProgrammingError
 except ImportError:
+
     class psycopg2_ProgrammingError(Exception):
         pass
+
 
 paramstyle = '?'
 
@@ -44,8 +47,10 @@ def get_con_cur_psql(dbpath, schema=None, read_only=False):
             if sql.lower().strip().startswith("create table"):
                 table = sql.split()[2]
                 break
-        cur.execute("SELECT EXISTS (SELECT 1 FROM pg_tables WHERE "
-                    "tablename = '%s');" % table)
+        cur.execute(
+            "SELECT EXISTS (SELECT 1 FROM pg_tables WHERE "
+            "tablename = '%s');" % table
+        )
         if not cur.fetchone()[0]:
             for sql in ['begin'] + (schema or []) + ['commit']:
                 try:
@@ -57,6 +62,7 @@ def get_con_cur_psql(dbpath, schema=None, read_only=False):
     global paramstyle
     paramstyle = "%s"
     return con, cur
+
 
 def get_con_cur_sqlite(filepath, schema=None, read_only=False):
     """Open DB, creating if necessary.
@@ -90,7 +96,12 @@ def do_query(cur, q, vals=None):
     if paramstyle != '?':
         q = q.replace('?', paramstyle)  # FIXME: crude
     try:
-        if vals and isinstance(vals[0], (tuple, list)):
+        # vals can be a dict or list or tuple
+        if (
+            vals
+            and isinstance(vals, (tuple, list))
+            and isinstance(vals[0], (tuple, list, dict))
+        ):
             cur.executemany(q, vals or [])
         else:
             cur.execute(q, vals or [])
