@@ -1,4 +1,4 @@
-import light_orm as lo
+from light_orm import light_orm as lo
 
 DB_SQL = [
     """create table topping (
