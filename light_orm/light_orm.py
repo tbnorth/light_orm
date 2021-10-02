@@ -23,7 +23,7 @@ except ImportError:
         pass
 
 
-paramstyle = '?'
+paramstyle = "?"
 
 if sys.version_info < (3, 6):
     # need dict insertion order
@@ -33,7 +33,7 @@ if sys.version_info < (3, 6):
 
 
 def get_con_cur(dbpath, schema=None, read_only=False):
-    if 'dbname=' not in dbpath:
+    if "dbname=" not in dbpath:
         return get_con_cur_sqlite(dbpath, schema=schema, read_only=read_only)
 
     return get_con_cur_psql(dbpath, schema=schema, read_only=read_only)
@@ -48,11 +48,10 @@ def get_con_cur_psql(dbpath, schema=None, read_only=False):
                 table = sql.split()[2]
                 break
         cur.execute(
-            "SELECT EXISTS (SELECT 1 FROM pg_tables WHERE "
-            "tablename = '%s');" % table
+            "SELECT EXISTS (SELECT 1 FROM pg_tables WHERE " "tablename = '%s');" % table
         )
         if not cur.fetchone()[0]:
-            for sql in ['begin'] + (schema or []) + ['commit']:
+            for sql in ["begin"] + (schema or []) + ["commit"]:
                 try:
                     cur.execute(sql)
                 except Exception:
@@ -75,9 +74,7 @@ def get_con_cur_sqlite(filepath, schema=None, read_only=False):
     """
     existed = os.path.exists(filepath)
     if not existed and read_only:
-        raise Exception(
-            "'%s' doesn't exist and requested read-only" % filepath
-        )
+        raise Exception("'%s' doesn't exist and requested read-only" % filepath)
     if read_only:
         con = sqlite3.connect("file:%s?mode=ro" % filepath, uri=True)
     else:
@@ -92,9 +89,9 @@ def get_con_cur_sqlite(filepath, schema=None, read_only=False):
 
 
 def do_query(cur, q, vals=None):
-    select = q.lower().strip().startswith('select')
-    if paramstyle != '?':
-        q = q.replace('?', paramstyle)  # FIXME: crude
+    select = q.lower().strip().startswith("select")
+    if paramstyle != "?":
+        q = q.replace("?", paramstyle)  # FIXME: crude
     try:
         # vals can be a dict or list or tuple
         if (
@@ -116,7 +113,7 @@ def do_query(cur, q, vals=None):
     except psycopg2_ProgrammingError:
         res = []
     if res and cur.description is None:
-        print('\n', q, '\n')
+        print("\n", q, "\n")
         raise Exception(
             "Error: table defined without first field `integer primary key`?"
         )
@@ -137,14 +134,12 @@ def do_one(cur, q, vals=None):
 def get_pk(cur, table, ident, return_obj=False, multi=False):
 
     if ident:
-        where = " where {vals}".format(
-            vals=' and '.join('%s=?' % k for k in ident)
-        )
+        where = " where {vals}".format(vals=" and ".join("%s=?" % k for k in ident))
     else:
-        where = ''
+        where = ""
     q = "select {table} from {table}{where}".format(table=table, where=where)
     if return_obj:
-        q = q.replace(table, '*', 1)  # replace first <table>
+        q = q.replace(table, "*", 1)  # replace first <table>
     res = do_query(cur, q, list(ident.values()))
 
     if len(res) > 1 and not multi:
@@ -177,10 +172,10 @@ def get_or_make_pk(cur, table, ident, defaults=None, return_obj=False):
         defaults.update(ident)
         do_query(
             cur,
-            'insert into {table} ({fields}) values ({values})'.format(
+            "insert into {table} ({fields}) values ({values})".format(
                 table=table,
-                fields=','.join(defaults),
-                values=','.join('?' * len(defaults)),
+                fields=",".join(defaults),
+                values=",".join("?" * len(defaults)),
             ),
             list(defaults.values()),
         )
@@ -194,9 +189,7 @@ def get_pks(cur, table, ident=None, return_obj=False):
 
 
 def get_or_make_rec(cur, table, ident, defaults=None):
-    return get_or_make_pk(
-        cur, table, ident, defaults=defaults, return_obj=True
-    )
+    return get_or_make_pk(cur, table, ident, defaults=defaults, return_obj=True)
 
 
 def get_recs(cur, table, ident=None):
@@ -215,7 +208,7 @@ def save_rec(cur, rec):
     table = list(rec.keys())[0]
     pk = rec[table]
     vals = [(k, v) for k, v in rec.items() if k != table]
-    q = 'update {table} set {values} where {table} = {pk}'.format(
-        table=table, pk=pk, values=','.join('%s=?' % i[0] for i in vals)
+    q = "update {table} set {values} where {table} = {pk}".format(
+        table=table, pk=pk, values=",".join("%s=?" % i[0] for i in vals)
     )
     do_query(cur, q, [i[1] for i in vals])
