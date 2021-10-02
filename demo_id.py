@@ -1,18 +1,18 @@
-"""Same as demo_id.py, but table id field is <table_name>, more convenient than `id`.
+"""Same as demo.py, but table id field is `id`, not the more convenient <table_name>.
 """
 from light_orm import light_orm as lo
 
 DB_SQL = [
     """create table topping (
-        topping integer primary key,
+        id integer primary key,
         name text
     )""",
     """create table pizza (
-        pizza integer primary key,
+        id integer primary key,
         name text
     )""",
     """create table ingredient (
-        ingredient integer primary key,
+        id integer primary key,
         pizza int,
         topping int,
         grams int
@@ -45,7 +45,7 @@ def main():
     for pizza in lo.do_query(
         cur,
         "select name, count(*) as n from pizza "
-        "join ingredient using (pizza) group by name",
+        "join ingredient on (ingredient.pizza=pizza.id) group by name",
     ):
         print("%s %d ingredients" % (pizza.name, pizza.n))
 
@@ -55,10 +55,10 @@ def main():
     # set topping grams to length of pizza name, naturally
     for pizza in lo.get_recs(cur, 'pizza'):
         for ingredient in lo.get_recs(
-            cur, 'ingredient', {'pizza': pizza.pizza}
+            cur, 'ingredient', {'pizza': pizza.id}
         ):
             ingredient.grams = len(pizza.name)
-            lo.save_rec(cur, ingredient)
+            lo.save_rec(cur, ingredient, 'ingredient')
     con.commit()
 
     # re-open DB just because
@@ -67,19 +67,20 @@ def main():
     for pizza in lo.get_recs(cur, 'pizza'):
         print("\n%s\n%s" % (pizza.name, '=' * len(pizza.name)))
         for ingredient in lo.get_recs(
-            cur, 'ingredient', {'pizza': pizza.pizza}
+            cur, 'ingredient', {'pizza': pizza.id}
         ):
             topping = lo.get_rec(
-                cur, 'topping', {'topping': ingredient.topping}
+                cur, 'topping', {'id': ingredient.topping}
             )
             print("  %s, %dg" % (topping.name, ingredient.grams))
         # OR
         for ingredient in lo.do_query(
             cur,
             "select topping.name, grams from pizza "
-            "join ingredient using (pizza) join topping using (topping) "
+            "join ingredient on (ingredient.pizza=pizza.id)"
+            "join topping on (ingredient.topping=topping.id) "
             "where pizza=?",
-            [pizza.pizza],
+            [pizza.id],
         ):
             # print("  %s, %dg" % (ingredient.name, ingredient.grams))
             pass

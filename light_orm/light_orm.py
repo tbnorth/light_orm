@@ -131,15 +131,26 @@ def do_one(cur, q, vals=None):
     return ans[0]
 
 
-def get_pk(cur, table, ident, return_obj=False, multi=False):
+def get_table_id(cur, table):
+    cur.execute(f"select * from {table} limit 0")
+    if any(i[0] == "id" for i in cur.description):
+        return "id"
+    return table
+
+
+def get_pk(cur, table, ident, return_obj=False, multi=False, __table_id={}):
+
+    if table not in __table_id:
+        __table_id[table] = get_table_id(cur, table)
+    table_id = __table_id[table]
 
     if ident:
         where = " where {vals}".format(vals=" and ".join("%s=?" % k for k in ident))
     else:
         where = ""
-    q = "select {table} from {table}{where}".format(table=table, where=where)
+    q = f"select {table_id} from {table}{where}"
     if return_obj:
-        q = q.replace(table, "*", 1)  # replace first <table>
+        q = q.replace(table_id, "*", 1)  # replace first <table>
     res = do_query(cur, q, list(ident.values()))
 
     if len(res) > 1 and not multi:
@@ -149,12 +160,12 @@ def get_pk(cur, table, ident, return_obj=False, multi=False):
             if return_obj:
                 return res
             else:
-                return [i[table] for i in res]
+                return [i[table_id] for i in res]
         else:
             if return_obj:
                 return res[0]
             else:
-                return res[0][table]
+                return res[0][table_id]
     else:
         return None
 
@@ -198,17 +209,24 @@ def get_recs(cur, table, ident=None):
     return get_rec(cur, table, ident, multi=True)
 
 
-def save_rec(cur, rec):
+def save_rec(cur, rec, table=None):
     """save_rec - save a modified record
 
     Args:
         opt (argparse namespace): options
         rec (Dict): record
     """
-    table = list(rec.keys())[0]
-    pk = rec[table]
-    vals = [(k, v) for k, v in rec.items() if k != table]
-    q = "update {table} set {values} where {table} = {pk}".format(
-        table=table, pk=pk, values=",".join("%s=?" % i[0] for i in vals)
+    if table is None:
+        table = list(rec.keys())[0]
+        table_id = table
+    else:
+        table_id = "id"
+    pk = rec[table_id]
+    vals = [(k, v) for k, v in rec.items() if k != table_id]
+    q = "update {table} set {values} where {table_id} = {pk}".format(
+        table=table,
+        table_id=table_id,
+        pk=pk,
+        values=",".join("%s=?" % i[0] for i in vals),
     )
     do_query(cur, q, [i[1] for i in vals])
