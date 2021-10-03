@@ -1,6 +1,5 @@
 import light_orm
 import pytest
-from importlib import reload
 
 DB_SQL = [
     """create table est (
@@ -190,13 +189,3 @@ def test_multi_fail(dbpath):
     with pytest.raises(Exception):
         res = light_orm.do_one(cur, "select * from est")
         return res  # for pylint
-
-
-def test_pyver():
-    import sys
-
-    ver = sys.version_info
-    sys.version_info = (2, 2) + ver[2:]
-    with pytest.raises(SystemExit):
-        reload(light_orm)
-    sys.version_info = ver

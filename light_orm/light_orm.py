@@ -7,6 +7,7 @@ Terry N. Brown terrynbrown@gmail.com Fri 07/19/2019
 import os
 import sqlite3
 import sys
+from functools import partial
 
 try:
     from addict import Dict
@@ -132,6 +133,10 @@ def do_one(cur, q, vals=None):
 
 
 def get_table_id(cur, table):
+    """Looks at fields in table to see if `table` or `id` is used.
+
+    Assume client code knows this, used internally.
+    """
     cur.execute(f"select * from {table} limit 0")
     if any(i[0] == "id" for i in cur.description):
         return "id"
@@ -230,3 +235,25 @@ def save_rec(cur, rec, table=None):
         values=",".join("%s=?" % i[0] for i in vals),
     )
     do_query(cur, q, [i[1] for i in vals])
+
+
+class LightOrm:
+    """Why is this class implemented this way?  Because the original use case didn't
+    supply a class at all, it was assumed the user would need to use the cursor object
+    anyway, so only the stand-alone functions were defined.
+    """
+
+    def __init__(self, dbpath, schema=None, read_only=False):
+        self.con, self.cur = get_con_cur(dbpath, schema=schema, read_only=read_only)
+        for func in (
+            do_one,
+            do_query,
+            get_or_make_pk,
+            get_or_make_rec,
+            get_pk,
+            get_pks,
+            get_rec,
+            get_recs,
+            save_rec,
+        ):
+            setattr(self, func.__name__, partial(func, self.cur))
