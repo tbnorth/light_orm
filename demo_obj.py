@@ -1,6 +1,6 @@
 """Same as demo.py, but use object.
 """
-from light_orm.light_orm import LightOrm
+from light_orm.light_orm import LightORM
 
 DB_SQL = [
     """create table topping (
@@ -28,7 +28,7 @@ def main():
         "vegetarian": ["cheese", "tomato", "pepper", "mushroom"],
     }
 
-    lo = LightOrm("pizza.db", DB_SQL)
+    lo = LightORM("pizza.db", DB_SQL)
 
     for pizza_name, toppings in pizzas.items():
         pizza, new = lo.get_or_make_pk("pizza", {"name": pizza_name})
@@ -55,7 +55,7 @@ def main():
     lo.con.commit()
 
     # re-open DB just because
-    lo = LightOrm("pizza.db", DB_SQL)
+    lo = LightORM("pizza.db", DB_SQL)
 
     for pizza in lo.get_recs("pizza"):
         print("\n%s\n%s" % (pizza.name, "=" * len(pizza.name)))

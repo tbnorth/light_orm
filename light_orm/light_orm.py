@@ -237,7 +237,7 @@ def save_rec(cur, rec, table=None):
     do_query(cur, q, [i[1] for i in vals])
 
 
-class LightOrm:
+class LightORM:
     """Why is this class implemented this way?  Because the original use case didn't
     supply a class at all, it was assumed the user would need to use the cursor object
     anyway, so only the stand-alone functions were defined.
