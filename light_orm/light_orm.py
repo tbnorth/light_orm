@@ -143,6 +143,12 @@ def get_table_id(cur, table):
     return table
 
 
+def comp(k, v):
+    if v is None:
+        return f"{k} is null"
+    return f"{k}=?"
+
+
 def get_pk(cur, table, ident, return_obj=False, multi=False, __table_id={}):
 
     if table not in __table_id:
@@ -150,13 +156,17 @@ def get_pk(cur, table, ident, return_obj=False, multi=False, __table_id={}):
     table_id = __table_id[table]
 
     if ident:
-        where = " where {vals}".format(vals=" and ".join("%s=?" % k for k in ident))
+        vals = " and ".join(comp(k, v) for k, v in ident.items())
+        where = f" where {vals}"
+        vals = [i for i in ident.values() if i is not None]
     else:
         where = ""
+        vals = []
+
     q = f"select {table_id} from {table}{where}"
     if return_obj:
         q = q.replace(table_id, "*", 1)  # replace first <table>
-    res = do_query(cur, q, list(ident.values()))
+    res = do_query(cur, q, vals)
 
     if len(res) > 1 and not multi:
         raise Exception("More than on result for %s %s" % (table, ident))
