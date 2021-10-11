@@ -144,6 +144,7 @@ def get_table_id(cur, table):
 
 
 def comp(k, v):
+    """SQL where elements accounting for k is null rather than null = null"""
     if v is None:
         return f"{k} is null"
     return f"{k}=?"
